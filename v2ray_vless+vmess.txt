@@ -1,0 +1,122 @@
+bash <(curl -L https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh)
+
+/etc/caddy/Caddyfile
+#######################
+1.example.org, 2.example.org
+{
+root * /var/www/{host}
+file_server
+# vmess
+reverse_proxy /help localhost:23456
+# vless + http/2
+reverse_proxy /download localhost:23457 {
+    transport http {
+      versions h2c
+    }
+}
+# vless + ws + cdn
+reverse_proxy /download2 localhost:23458
+}
+#######################
+
+/usr/local/etc/v2ray/config.json
+#######################
+{
+    "inbounds": [
+        {
+            "port": 8080,
+            "protocol": "vmess",
+            "settings": {
+                "clients": [
+                    {
+                        "id": "a84e17dc-abcd-efgh-ijkl-a5dd3888abcd",
+                        "alterId": 0
+                    }
+                ]
+            }
+        },
+        {
+            "port": 23456,
+            "protocol": "vmess",
+            "settings": {
+                "clients": [
+                    {
+                        "id": "a84e17dc-abcd-efgh-ijkl-a5dd3888abcd",
+                        "alterId": 0
+                    }
+                ]
+            },
+            "streamSettings": {
+                "network": "ws",
+                "wsSettings": {
+                    "path": "/help"
+                }
+            }
+        },
+        {
+            "port": 23457,
+            "protocol": "vless",
+            "settings": {
+                "clients": [
+                    {
+                        "id": "a84e17dc-abcd-efgh-ijkl-a5dd3888abcd"
+                    }
+                ],
+                "decryption": "none"
+            },
+            "streamSettings": {
+                "security": "none",
+                "network": "h2",
+                "httpSettings": {
+                    "path": "/download",
+                    "host": [
+                        "2.example.org"
+                    ]
+                }
+            }
+        },
+        {
+            "port": 23458,
+            "protocol": "vless",
+            "settings": {
+                "clients": [
+                    {
+                        "id": "a84e17dc-abcd-efgh-ijkl-a5dd3888abcd"
+                    }
+                ],
+                "decryption": "none"
+            },
+            "streamSettings": {
+                "network": "ws",
+                "wsSettings": {
+                    "path": "/download2"
+                }
+            }
+        }
+    ],
+    "outbounds": [
+        {
+            "tag": "direct",
+            "protocol": "freedom",
+            "settings": {}
+        },
+        {
+            "tag": "blocked",
+            "protocol": "blackhole",
+            "settings": {}
+        }
+    ],
+    "routing": {
+        "domainStrategy": "AsIs",
+        "rules": [
+            {
+                "type": "field",
+                "ip": [
+                    "geoip:private"
+                ],
+                "outboundTag": "blocked"
+            }
+        ]
+    }
+}
+#######################
